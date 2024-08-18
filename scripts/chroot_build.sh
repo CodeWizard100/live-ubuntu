@@ -93,12 +93,11 @@ function load_config() {
     fi
 }
 
-
 function install_pkg() {
     echo "=====> running install_pkg ... will take a long time ..."
     apt-get -y upgrade
 
-    # install live packages
+    # install minimal packages
     apt-get install -y \
     sudo \
     ubuntu-standard \
@@ -116,30 +115,15 @@ function install_pkg() {
     grub-pc \
     grub-pc-bin \
     grub2-common \
-    locales
+    locales \
+    openbox \
+    xorg \
+    x11-xserver-utils \
+    xterm \
     
-    case $TARGET_UBUNTU_VERSION in
-        "focal" | "bionic")
-            apt-get install -y lupin-casper
-            ;;
-        *)
-            echo "Package lupin-casper is not needed. Skipping."
-            ;;
-    esac
-    
+
     # install kernel
     apt-get install -y --no-install-recommends $TARGET_KERNEL_PACKAGE
-
-    # graphic installer - ubiquity
-    apt-get install -y \
-    ubiquity \
-    ubiquity-casper \
-    ubiquity-frontend-gtk \
-    ubiquity-slideshow-ubuntu \
-    ubiquity-ubuntu-artwork
-
-    # Call into config function
-    customize_image
 
     # remove unused and clean up apt cache
     apt-get autoremove -y
@@ -162,6 +146,23 @@ EOF
     dpkg-reconfigure network-manager
 
     apt-get clean -y
+
+    # Create a minimal Openbox configuration
+    mkdir -p /etc/skel/.config/openbox
+    cat <<EOF > /etc/skel/.config/openbox/autostart
+# Start Openbox
+xsetroot -cursor_name left_ptr &
+# Start xterm
+xterm &
+EOF
+
+    # Create a "Hello World!" script
+    mkdir -p /etc/skel/Desktop
+    cat <<EOF > /etc/skel/Desktop/hello-world.sh
+#!/bin/bash
+xmessage "Hello World!"
+EOF
+    chmod +x /etc/skel/Desktop/hello-world.sh
 }
 
 function finish_up() { 
@@ -212,4 +213,3 @@ for ((ii=$start_index; ii<$end_index; ii++)); do
 done
 
 echo "$0 - Initial build is done!"
-
