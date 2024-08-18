@@ -93,11 +93,12 @@ function load_config() {
     fi
 }
 
+
 function install_pkg() {
     echo "=====> running install_pkg ... will take a long time ..."
     apt-get -y upgrade
 
-    # install minimal packages
+    # install live packages
     apt-get install -y \
     sudo \
     ubuntu-standard \
@@ -115,15 +116,33 @@ function install_pkg() {
     grub-pc \
     grub-pc-bin \
     grub2-common \
-    locales \
-    openbox \
     xorg \
     x11-xserver-utils \
-    xterm \
+    openbox \
+    locales
     
-
+    case $TARGET_UBUNTU_VERSION in
+        "focal" | "bionic")
+            apt-get install -y lupin-casper
+            ;;
+        *)
+            echo "Package lupin-casper is not needed. Skipping."
+            ;;
+    esac
+    
     # install kernel
     apt-get install -y --no-install-recommends $TARGET_KERNEL_PACKAGE
+
+    # graphic installer - ubiquity
+    apt-get install -y \
+    ubiquity \
+    ubiquity-casper \
+    ubiquity-frontend-gtk \
+    ubiquity-slideshow-ubuntu \
+    ubiquity-ubuntu-artwork
+
+    # Call into config function
+    customize_image
 
     # remove unused and clean up apt cache
     apt-get autoremove -y
@@ -134,20 +153,7 @@ function install_pkg() {
 
     # network manager
     cat <<EOF > /etc/NetworkManager/NetworkManager.conf
-[main]
-rc-manager=resolvconf
-plugins=ifupdown,keyfile
-dns=dnsmasq
 
-[ifupdown]
-managed=false
-EOF
-
-    dpkg-reconfigure network-manager
-
-    apt-get clean -y
-
-    # Create a minimal Openbox configuration
     mkdir -p /etc/skel/.config/openbox
     cat <<EOF > /etc/skel/.config/openbox/autostart
 # Start Openbox
@@ -163,6 +169,18 @@ EOF
 xmessage "Hello World!"
 EOF
     chmod +x /etc/skel/Desktop/hello-world.sh
+[main]
+rc-manager=resolvconf
+plugins=ifupdown,keyfile
+dns=dnsmasq
+
+[ifupdown]
+managed=false
+EOF
+
+    dpkg-reconfigure network-manager
+
+    apt-get clean -y
 }
 
 function finish_up() { 
